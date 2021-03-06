@@ -1,0 +1,237 @@
+---
+title: "report"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading, setting up
+
+```{r}
+library(tidyverse)
+library(here)
+library(rtweet)
+library(tidytags) # tidytags::process_tweets(searched_statuses)
+
+d <- read_csv(here('data', 'sample-of-tweets.csv'),
+              col_types = cols(
+                id_str = col_character()
+              ))
+
+d_level3 <- select(d, status_id = id_str, level3, created_at)
+
+# searched_statuses <- tidytags::pull_tweet_data(id_vector = d_level3$status_id)
+#
+# write_rds(searched_statuses, "searched-statuses.rds")
+
+searched_statuses <- read_rds("searched-statuses.rds")
+
+searched_statuses <- tidytags::process_tweets(searched_statuses)
+
+users_data <- rtweet::users_data(searched_statuses) %>%
+  distinct(user_id, .keep_all = T)
+
+users_data %>%
+  skimr::skim()
+```
+
+## Interactions
+
+```{r}
+dd <- searched_statuses %>%
+  select(favorite_count, retweet_count, status_id) %>%
+  left_join(d_level3)
+
+interactions_table <- dd %>%
+  group_by(level3) %>%
+  mutate(total_interactions = favorite_count + retweet_count) %>%
+  summarize(mean_fav = mean(favorite_count),
+            sd_fav = sd(favorite_count),
+            mean_rt = mean(retweet_count),
+            sd_rt = sd(retweet_count),
+            mean_total = mean(total_interactions),
+            sd_total = sd(total_interactions)) %>%
+  arrange(desc(mean_total))
+
+interactions_table %>% 
+  knitr::kable()
+```
+
+## Time series
+
+```{r}
+ddd <- d_level3 %>%
+  mutate(created_at = lubridate::ymd_hms(created_at)) %>%
+  mutate(week = lubridate::round_date(created_at, unit = "day")) %>%
+  count(week, level3) %>%
+  spread(level3, n, fill = 0) %>%
+  gather(key, val, -week) %>%
+  mutate(week_int = lubridate::week(week))
+
+top_codes <- d %>%
+  count(level3, sort = TRUE) %>%
+  filter(n > 50) %>%
+  rename(key = level3)
+
+dddd <- ddd %>%
+  semi_join(top_codes)
+
+dddb <- d_level3 %>%
+  mutate(created_at = lubridate::ymd_hms(created_at)) %>%
+  mutate(week = lubridate::round_date(created_at, unit = "week")) %>%
+  count(week, level3) %>%
+  spread(level3, n, fill = 0) %>%
+  gather(key, val, -week) %>%
+  mutate(week_int = lubridate::week(week))
+
+ddddb <- dddb %>%
+  semi_join(top_codes)
+
+small_plot <- dddd %>% 
+  group_by(week) %>% 
+  summarize(sum_val = sum(val))
+
+small_plot
+```
+
+```{r}
+f <- function(data) {
+  glm(val ~ week_int, data = data, family = "poisson")
+}
+
+my_order <- top_codes %>% arrange(key)
+
+my_order <- my_order %>%
+  mutate(order = 1:10)
+
+l <- dddd %>%
+  arrange(key) %>%
+  group_by(key) %>%
+  group_split() %>%
+  purrr::map(f)
+
+res_tab <- dddd %>%
+  arrange(key) %>%
+  group_by(key) %>%
+  group_split() %>%
+  purrr::map(f) %>%
+  map_df(broom::tidy) %>%
+  mutate(order = rep(1:10, each = 2)) %>%
+  left_join(my_order) %>%
+  filter(term == "week_int") %>%
+  mutate(p.value = round(p.value, 3)) %>%
+  arrange(desc(abs(estimate)))
+
+res_tab <- res_tab %>%
+  mutate(pattern = c(
+    "decrease",
+    rep("increase", 4),
+    rep("unchanged", 5)
+  ))
+
+ddddb <- left_join(ddddb, res_tab)
+```
+
+## decrease
+
+- unrelated to COVID 
+
+## increase
+
+- student highlight
+- staff highlight
+- events 
+- spreading positive messages
+
+# unchanged
+
+- school closings
+- health resources 
+- remote learning 
+- meals
+- universal announcement
+
+```{r}
+dddb %>%
+  left_join(res_tab) %>% 
+  mutate(key = fct_reorder(key, val, sum, .desc = TRUE)) %>% 
+  filter(pattern == "increase") %>% 
+  ggplot(aes(x = week, y = val)) +
+  geom_point(color = "darkgray") +
+  geom_line() +
+  # geom_line(data = subset(ddddb, pattern == "increase"), aes(x = week, y = val, group = key)) +
+  #geom_smooth(method = "lm", se = F, color = "black") +
+  #geom_col(data = small_plot, aes(x = week, y = sum_val), fill = 'lightgray') +
+  # geom_line(color = "darkblue", alpha = .5) +
+  theme_minimal() +
+  #geom_line() +
+  scale_color_brewer(type = "qual") +
+  facet_wrap(~key, ncol = 3) +
+  # facet_grid(rows = vars(pattern), cols = vars(key)) +
+  ylab("Number of Posts") +
+  xlab(NULL) +
+  theme(text = element_text(size = 13, family = "Times")) +
+  # theme(panel.grid.major = element_line(colour = "lightgray"))
+  theme(panel.grid.minor = element_blank()) +
+  scale_x_datetime(labels = scales::date_format("%m-%d")) +
+  geom_vline(xintercept = lubridate::ymd_hms("2020-03-17 00:00:00"), alpha = .8, linetype = "dashed") +
+  labs(caption = "Note. Dashed line indicates the mean date on which districts closed.")
+
+ggsave("posts-over-time-increase.png", width = 10, height = 6)
+
+dddb %>%
+  left_join(res_tab) %>% 
+  mutate(key = fct_reorder(key, val, sum, .desc = TRUE)) %>% 
+  filter(pattern == "unchanged") %>% 
+  ggplot(aes(x = week, y = val)) +
+  geom_point(color = "darkgray") +
+  geom_line() +
+  # geom_line(data = subset(ddddb, pattern == "increase"), aes(x = week, y = val, group = key)) +
+  geom_smooth(method = "lm", se = F, color = "black") +
+  #geom_col(data = small_plot, aes(x = week, y = sum_val), fill = 'lightgray') +
+  # geom_line(color = "darkblue", alpha = .5) +
+  theme_minimal() +
+  #geom_line() +
+  scale_color_brewer(type = "qual") +
+  facet_wrap(~key, ncol = 3) +
+  # facet_grid(rows = vars(pattern), cols = vars(key)) +
+  ylab("Number of Posts") +
+  xlab(NULL) +
+  theme(text = element_text(size = 13, family = "Times")) +
+  # theme(panel.grid.major = element_line(colour = "lightgray"))
+  theme(panel.grid.minor = element_blank()) +
+  scale_x_datetime(labels = scales::date_format("%m-%d")) +
+  geom_vline(xintercept = lubridate::ymd_hms("2020-03-17 00:00:00"), alpha = .8, linetype = "dashed") +
+  labs(caption = "Note. Dashed line indicates the mean date on which districts closed.")
+
+ggsave("posts-over-time-unchanged.png", width = 10, height = 6)
+
+dddb %>%
+  left_join(res_tab) %>% 
+  mutate(key = fct_reorder(key, val, sum, .desc = TRUE)) %>% 
+  filter(pattern == "decrease") %>% 
+  ggplot(aes(x = week, y = val)) +
+  geom_point(color = "darkgray") +
+  geom_line() +
+  # geom_line(data = subset(ddddb, pattern == "increase"), aes(x = week, y = val, group = key)) +
+  geom_smooth(method = "lm", se = F, color = "black") +
+  #geom_col(data = small_plot, aes(x = week, y = sum_val), fill = 'lightgray') +
+  # geom_line(color = "darkblue", alpha = .5) +
+  theme_minimal() +
+  #geom_line() +
+  scale_color_brewer(type = "qual") +
+  facet_wrap(~key, ncol = 3) +
+  # facet_grid(rows = vars(pattern), cols = vars(key)) +
+  ylab("Number of Posts") +
+  xlab(NULL) +
+  theme(text = element_text(size = 13, family = "Times")) +
+  # theme(panel.grid.major = element_line(colour = "lightgray"))
+  theme(panel.grid.minor = element_blank()) +
+  scale_x_datetime(labels = scales::date_format("%m-%d")) +
+  geom_vline(xintercept = lubridate::ymd_hms("2020-03-17 00:00:00"), alpha = .8, linetype = "dashed") +
+  labs(caption = "Note. Dashed line indicates the mean date on which districts closed.")
+
+ggsave("posts-over-time-decrease.png", width = 5, height = 3)
+```
