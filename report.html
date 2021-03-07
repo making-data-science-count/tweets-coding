@@ -574,7 +574,7 @@ users_data %&gt;%
   select(favorite_count, retweet_count, status_id) %&gt;%
   left_join(d_level3)</code></pre>
 <pre><code>## Joining, by = &quot;status_id&quot;</code></pre>
-<pre class="r"><code>interactions_table &lt;- dd %&gt;%
+<pre class="r"><code>interactions_table_back &lt;- dd %&gt;%
   group_by(level3) %&gt;%
   mutate(total_interactions = favorite_count + retweet_count) %&gt;%
   summarize(mean_fav = mean(favorite_count),
@@ -582,20 +582,22 @@ users_data %&gt;%
             mean_rt = mean(retweet_count),
             sd_rt = sd(retweet_count),
             mean_total = mean(total_interactions),
+            median_total = median(total_interactions),
             sd_total = sd(total_interactions)) %&gt;%
   arrange(desc(mean_total))
 
-interactions_table %&gt;% 
-  knitr::kable()</code></pre>
-<table>
+interactions_table_back %&gt;% 
+    knitr::kable()</code></pre>
+<table style="width:100%;">
 <colgroup>
-<col width="30%" />
+<col width="26%" />
+<col width="9%" />
+<col width="10%" />
+<col width="9%" />
+<col width="10%" />
 <col width="10%" />
 <col width="12%" />
-<col width="10%" />
-<col width="12%" />
-<col width="12%" />
-<col width="10%" />
+<col width="9%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -605,6 +607,7 @@ interactions_table %&gt;%
 <th align="right">mean_rt</th>
 <th align="right">sd_rt</th>
 <th align="right">mean_total</th>
+<th align="right">median_total</th>
 <th align="right">sd_total</th>
 </tr>
 </thead>
@@ -616,6 +619,7 @@ interactions_table %&gt;%
 <td align="right">16.849057</td>
 <td align="right">31.1401276</td>
 <td align="right">44.339623</td>
+<td align="right">11.0</td>
 <td align="right">81.767246</td>
 </tr>
 <tr class="even">
@@ -625,6 +629,7 @@ interactions_table %&gt;%
 <td align="right">11.150000</td>
 <td align="right">29.2890873</td>
 <td align="right">30.362500</td>
+<td align="right">11.5</td>
 <td align="right">67.169961</td>
 </tr>
 <tr class="odd">
@@ -634,6 +639,7 @@ interactions_table %&gt;%
 <td align="right">2.243243</td>
 <td align="right">3.5833357</td>
 <td align="right">19.639640</td>
+<td align="right">11.0</td>
 <td align="right">27.095720</td>
 </tr>
 <tr class="even">
@@ -643,6 +649,7 @@ interactions_table %&gt;%
 <td align="right">6.752294</td>
 <td align="right">12.5817004</td>
 <td align="right">19.256881</td>
+<td align="right">8.0</td>
 <td align="right">41.974729</td>
 </tr>
 <tr class="odd">
@@ -652,6 +659,7 @@ interactions_table %&gt;%
 <td align="right">2.077778</td>
 <td align="right">3.6480802</td>
 <td align="right">18.488889</td>
+<td align="right">8.5</td>
 <td align="right">29.070331</td>
 </tr>
 <tr class="even">
@@ -661,6 +669,7 @@ interactions_table %&gt;%
 <td align="right">5.961538</td>
 <td align="right">13.2547665</td>
 <td align="right">18.416667</td>
+<td align="right">5.0</td>
 <td align="right">40.846836</td>
 </tr>
 <tr class="odd">
@@ -670,6 +679,7 @@ interactions_table %&gt;%
 <td align="right">2.690476</td>
 <td align="right">4.4989321</td>
 <td align="right">18.321429</td>
+<td align="right">8.5</td>
 <td align="right">26.484895</td>
 </tr>
 <tr class="even">
@@ -679,6 +689,7 @@ interactions_table %&gt;%
 <td align="right">2.621622</td>
 <td align="right">3.8826634</td>
 <td align="right">17.891892</td>
+<td align="right">12.0</td>
 <td align="right">20.365799</td>
 </tr>
 <tr class="odd">
@@ -688,6 +699,7 @@ interactions_table %&gt;%
 <td align="right">4.000000</td>
 <td align="right">5.6407607</td>
 <td align="right">15.913044</td>
+<td align="right">10.0</td>
 <td align="right">18.490570</td>
 </tr>
 <tr class="even">
@@ -697,6 +709,7 @@ interactions_table %&gt;%
 <td align="right">4.142857</td>
 <td align="right">6.9581308</td>
 <td align="right">14.375000</td>
+<td align="right">6.0</td>
 <td align="right">24.477494</td>
 </tr>
 <tr class="odd">
@@ -706,6 +719,7 @@ interactions_table %&gt;%
 <td align="right">3.258065</td>
 <td align="right">4.5384854</td>
 <td align="right">13.516129</td>
+<td align="right">6.0</td>
 <td align="right">26.944228</td>
 </tr>
 <tr class="even">
@@ -715,6 +729,7 @@ interactions_table %&gt;%
 <td align="right">1.888889</td>
 <td align="right">5.4133873</td>
 <td align="right">13.433048</td>
+<td align="right">5.0</td>
 <td align="right">45.096474</td>
 </tr>
 <tr class="odd">
@@ -724,6 +739,7 @@ interactions_table %&gt;%
 <td align="right">3.674797</td>
 <td align="right">7.6388738</td>
 <td align="right">12.447154</td>
+<td align="right">5.0</td>
 <td align="right">23.060933</td>
 </tr>
 <tr class="even">
@@ -733,6 +749,7 @@ interactions_table %&gt;%
 <td align="right">1.093023</td>
 <td align="right">5.2044576</td>
 <td align="right">4.232558</td>
+<td align="right">1.0</td>
 <td align="right">17.135090</td>
 </tr>
 <tr class="odd">
@@ -742,7 +759,276 @@ interactions_table %&gt;%
 <td align="right">0.600000</td>
 <td align="right">0.8944272</td>
 <td align="right">1.400000</td>
+<td align="right">1.0</td>
 <td align="right">1.140175</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>dd %&gt;%
+  group_by(level3) %&gt;%
+  mutate(total_interactions = favorite_count + retweet_count) %&gt;%
+  select(total_interactions) %&gt;% 
+  skimr::skim() %&gt;% 
+  knitr::kable()</code></pre>
+<pre><code>## Adding missing grouping variables: `level3`</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="5%" />
+<col width="10%" />
+<col width="15%" />
+<col width="5%" />
+<col width="7%" />
+<col width="7%" />
+<col width="6%" />
+<col width="6%" />
+<col width="6%" />
+<col width="6%" />
+<col width="6%" />
+<col width="7%" />
+<col width="7%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">skim_type</th>
+<th align="left">skim_variable</th>
+<th align="left">level3</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">numeric.mean</th>
+<th align="right">numeric.sd</th>
+<th align="right">numeric.p0</th>
+<th align="right">numeric.p25</th>
+<th align="right">numeric.p50</th>
+<th align="right">numeric.p75</th>
+<th align="right">numeric.p100</th>
+<th align="left">numeric.hist</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">Ambiguous</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1.400000</td>
+<td align="right">1.140175</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1.0</td>
+<td align="right">2.00</td>
+<td align="right">3</td>
+<td align="left">▃▇▁▃▃</td>
+</tr>
+<tr class="even">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">Community Highlight</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">17.891892</td>
+<td align="right">20.365799</td>
+<td align="right">0</td>
+<td align="right">5</td>
+<td align="right">12.0</td>
+<td align="right">21.00</td>
+<td align="right">106</td>
+<td align="left">▇▂▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">Direct Reply</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">4.232558</td>
+<td align="right">17.135090</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1.0</td>
+<td align="right">2.00</td>
+<td align="right">113</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">Events</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">12.447154</td>
+<td align="right">23.060933</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">5.0</td>
+<td align="right">13.50</td>
+<td align="right">155</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">Health Resources</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">14.375000</td>
+<td align="right">24.477494</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">6.0</td>
+<td align="right">14.25</td>
+<td align="right">134</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">Meals</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">30.362500</td>
+<td align="right">67.169961</td>
+<td align="right">0</td>
+<td align="right">4</td>
+<td align="right">11.5</td>
+<td align="right">24.00</td>
+<td align="right">532</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">Multiple</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">15.913044</td>
+<td align="right">18.490570</td>
+<td align="right">0</td>
+<td align="right">4</td>
+<td align="right">10.0</td>
+<td align="right">20.00</td>
+<td align="right">65</td>
+<td align="left">▇▂▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">Remote Learning</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">19.256881</td>
+<td align="right">41.974729</td>
+<td align="right">0</td>
+<td align="right">3</td>
+<td align="right">8.0</td>
+<td align="right">18.00</td>
+<td align="right">395</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">Requests</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">13.516129</td>
+<td align="right">26.944228</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">6.0</td>
+<td align="right">13.00</td>
+<td align="right">147</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">School Closings</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">44.339623</td>
+<td align="right">81.767246</td>
+<td align="right">0</td>
+<td align="right">3</td>
+<td align="right">11.0</td>
+<td align="right">38.00</td>
+<td align="right">364</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">Spreading Positive Messages</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">18.321429</td>
+<td align="right">26.484895</td>
+<td align="right">0</td>
+<td align="right">3</td>
+<td align="right">8.5</td>
+<td align="right">21.25</td>
+<td align="right">139</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">Staff Highlight</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">19.639640</td>
+<td align="right">27.095720</td>
+<td align="right">0</td>
+<td align="right">5</td>
+<td align="right">11.0</td>
+<td align="right">22.00</td>
+<td align="right">171</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">Student Highlight</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">18.488889</td>
+<td align="right">29.070331</td>
+<td align="right">0</td>
+<td align="right">3</td>
+<td align="right">8.5</td>
+<td align="right">18.75</td>
+<td align="right">164</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">Universal Announcements</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">18.416667</td>
+<td align="right">40.846836</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">5.0</td>
+<td align="right">15.25</td>
+<td align="right">285</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">numeric</td>
+<td align="left">total_interactions</td>
+<td align="left">Unrelated to COVID</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">13.433048</td>
+<td align="right">45.096474</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">5.0</td>
+<td align="right">12.00</td>
+<td align="right">599</td>
+<td align="left">▇▁▁▁▁</td>
 </tr>
 </tbody>
 </table>

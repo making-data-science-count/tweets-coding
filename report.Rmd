@@ -11,19 +11,21 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidyverse)
-library(here)
 library(rtweet)
+library(googlesheets4)
 library(tidytags) # tidytags::process_tweets(searched_statuses)
 
-d <- read_csv(here('data', 'sample-of-tweets.csv'),
-              col_types = cols(
-                id_str = col_character()
-              ))
+d <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1rlcFPlUgPMH-N30AMXNylSwUIl59qe5ECn7_kNaB53E/edit#gid=580742975")
+
+# d <- read_csv(here('data', 'sample-of-tweets.csv'),
+#               col_types = cols(
+#                 id_str = col_character()
+#               ))
 
 d_level3 <- select(d, status_id = id_str, level3, created_at)
 
 # searched_statuses <- tidytags::pull_tweet_data(id_vector = d_level3$status_id)
-#
+# 
 # write_rds(searched_statuses, "searched-statuses.rds")
 
 searched_statuses <- read_rds("searched-statuses.rds")
@@ -44,7 +46,7 @@ dd <- searched_statuses %>%
   select(favorite_count, retweet_count, status_id) %>%
   left_join(d_level3)
 
-interactions_table <- dd %>%
+interactions_table_back <- dd %>%
   group_by(level3) %>%
   mutate(total_interactions = favorite_count + retweet_count) %>%
   summarize(mean_fav = mean(favorite_count),
@@ -52,10 +54,18 @@ interactions_table <- dd %>%
             mean_rt = mean(retweet_count),
             sd_rt = sd(retweet_count),
             mean_total = mean(total_interactions),
+            median_total = median(total_interactions),
             sd_total = sd(total_interactions)) %>%
   arrange(desc(mean_total))
 
-interactions_table %>% 
+interactions_table_back %>% 
+  knitr::kable()
+
+dd %>%
+  group_by(level3) %>%
+  mutate(total_interactions = favorite_count + retweet_count) %>%
+  select(total_interactions) %>% 
+  skimr::skim() %>% 
   knitr::kable()
 ```
 
@@ -64,20 +74,130 @@ interactions_table %>%
 ```{r}
 ddd <- d_level3 %>%
   mutate(created_at = lubridate::ymd_hms(created_at)) %>%
-  mutate(week = lubridate::round_date(created_at, unit = "day")) %>%
+  mutate(day = lubridate::round_date(created_at, unit = "day")) %>%
+  mutate(day = day - lubridate::days(4)) %>% 
+  mutate(week = lubridate::round_date(day, unit = "week")) %>%
   count(week, level3) %>%
   spread(level3, n, fill = 0) %>%
   gather(key, val, -week) %>%
   mutate(week_int = lubridate::week(week))
+# mutate(val = ifelse(week == lubridate::ymd("2020-03-01"), val * (1 + 4/3), 
+#                      ifelse(week == lubridate::ymd("2020-04-26"), val * (1 + 3/4),
+#                              val)))
 
 top_codes <- d %>%
   count(level3, sort = TRUE) %>%
-  filter(n > 50) %>%
+  filter(n > 25) %>%
   rename(key = level3)
 
 dddd <- ddd %>%
   semi_join(top_codes)
 
+dddd
+```
+
+```{r}
+dddd %>%
+  ggplot(aes(x = week, y = val)) +
+  geom_point(color = "darkgray") +
+  geom_line() +
+  facet_wrap(~key, scales = "free_y") +
+  theme_minimal() +
+  #geom_line() +
+  scale_color_brewer(type = "qual") +
+  ylab("Number of Posts") +
+  xlab(NULL) +
+  theme(text = element_text(size = 13, family = "Times")) +
+  theme(panel.grid.minor = element_blank()) +
+  scale_x_datetime(labels = scales::date_format("%m-%d")) +
+  geom_vline(xintercept = lubridate::ymd_hms("2020-03-17 00:00:00"), alpha = .8, linetype = "dashed") +
+  labs(caption = "Note. Dashed line indicates the mean date on which districts closed.")
+```
+
+# peaking around closures
+
+remote learning, school closings, universal announcements, meals, requests, direct reply
+
+```{r}
+ggplot(subset(dddd, key %in% c("Direct Reply", "Remote Learning", "Meals", "Universal Announcements", "Requests", "School Closings")),
+       aes(x = week, y = val, group = key, color = key)) +
+  geom_point() +
+  #geom_point(data = dddd, aes(x = week, y = val, group = key), color = "#DCDCDC") +
+  #geom_line(data = dddd, aes(x = week, y = val, group = key), color = "#DCDCDC") +
+  geom_line() +
+  # facet_wrap(~key, scales = "free_y") +
+  theme_bw() +
+  #geom_line() +
+  scale_color_brewer("", type = "qual") +
+  ylab("Number of Posts") +
+  xlab(NULL) +
+  theme(text = element_text(size = 15, family = "Times")) +
+  scale_x_datetime(labels = scales::date_format("%m-%d")) +
+  geom_vline(xintercept = lubridate::ymd_hms("2020-03-17 00:00:00"), alpha = .7, linetype = "dashed") +
+  labs(caption = "Note. Dashed line indicates the mean date on which districts closed.") +
+  ylim(0, 35) +
+  labs(subtitle = "Peaking in Frequency Around School Closures")
+
+ggsave("pattern-1.png", width = 10, height = 7)
+```
+
+
+# peaking later
+
+spreading positive messages, staff highlight, student highlight, community highlight, health resources, events
+
+```{r}
+ggplot(subset(dddd, key %in% c("Spreading Positive Messages", "Staff Highlight", "Student Highlight", "Community Highlight", "Helath Resources", "Events")),
+       aes(x = week, y = val, group = key, color = key)) +
+  geom_point() +
+  #geom_point(data = dddd, aes(x = week, y = val, group = key), color = "#DCDCDC") +
+  #geom_line(data = dddd, aes(x = week, y = val, group = key), color = "#DCDCDC") +
+  geom_line() +
+  # facet_wrap(~key, scales = "free_y") +
+  theme_bw() +
+  #geom_line() +
+  scale_color_brewer("", type = "qual", palette = 2) +
+  ylab("Number of Posts") +
+  xlab(NULL) +
+  theme(text = element_text(size = 15, family = "Times")) +
+  scale_x_datetime(labels = scales::date_format("%m-%d")) +
+  geom_vline(xintercept = lubridate::ymd_hms("2020-03-17 00:00:00"), alpha = .7, linetype = "dashed") +
+  labs(caption = "Note. Dashed line indicates the mean date on which districts closed.") +
+  ylim(0, 35) +
+  labs(subtitle = "Peaking in Frequency Following Closures")
+
+ggsave("pattern-2.png", width = 10, height = 7)
+```
+
+# declining after beginning frequent
+
+unrelated to COVID
+
+```{r}
+ggplot(subset(dddd, key %in% c("Unrelated to COVID")),
+       aes(x = week, y = val, group = key, color = key)) +
+  geom_point() +
+  #geom_point(data = dddd, aes(x = week, y = val, group = key), color = "#DCDCDC") +
+  #geom_line(data = dddd, aes(x = week, y = val, group = key), color = "#DCDCDC") +
+  geom_line() +
+  # facet_wrap(~key, scales = "free_y") +
+  theme_bw() +
+  #geom_line() +
+  scale_color_brewer("", type = "qual", palette = 3) +
+  ylab("Number of Posts") +
+  xlab(NULL) +
+  theme(text = element_text(size = 15, family = "Times")) +
+  scale_x_datetime(labels = scales::date_format("%m-%d")) +
+  geom_vline(xintercept = lubridate::ymd_hms("2020-03-17 00:00:00"), alpha = .7, linetype = "dashed") +
+  labs(caption = "Note. Dashed line indicates the mean date on which districts closed.") +
+  labs(subtitle = "Declining in Frequency Following Closures")
+
+ggsave("pattern-3.png", width = 10, height = 7)
+```
+
+all of this may not be that helpful
+
+```{r}
 dddb <- d_level3 %>%
   mutate(created_at = lubridate::ymd_hms(created_at)) %>%
   mutate(week = lubridate::round_date(created_at, unit = "week")) %>%
@@ -99,6 +219,10 @@ small_plot
 ```{r}
 f <- function(data) {
   glm(val ~ week_int, data = data, family = "poisson")
+}
+
+ff <- function(data) {
+  glm(val ~ week_int + I(week_int^2), data = data, family = "poisson")
 }
 
 my_order <- top_codes %>% arrange(key)
@@ -134,6 +258,39 @@ res_tab <- res_tab %>%
 ddddb <- left_join(ddddb, res_tab)
 ```
 
+quadratic
+
+```{r}
+li <- dddd %>%
+  arrange(key) %>%
+  group_by(key) %>%
+  group_split() %>%
+  purrr::map(ff)
+
+res_tabi <- dddd %>%
+  arrange(key) %>%
+  group_by(key) %>%
+  group_split() %>%
+  purrr::map(ff) %>%
+  map_df(broom::tidy) %>%
+  mutate(order = rep(1:10, each = 3)) %>%
+  left_join(my_order) %>%
+  filter(str_detect(term, "week_int")) %>%
+  mutate(p.value = round(p.value, 3)) %>%
+  arrange(desc(abs(estimate)))
+
+res_tabi <- res_tabi %>%
+  mutate(pattern = c(
+    "decrease"
+    # rep("increase", 4),
+    # rep("unchanged", 5)
+  ))
+
+ddddi <- left_join(dddd, res_tabi)
+
+res_tabi
+```
+
 ## decrease
 
 - unrelated to COVID 
@@ -153,11 +310,20 @@ ddddb <- left_join(ddddb, res_tab)
 - meals
 - universal announcement
 
+````{r}
+dddd %>%
+  ggplot(aes(x = week, y = val)) +
+  geom_point(color = "darkgray") +
+  geom_line() +
+  facet_wrap(~key, scales = "free_y") +
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), size = 1)
+```
+
 ```{r}
-dddb %>%
+dddd %>%
   left_join(res_tab) %>% 
   mutate(key = fct_reorder(key, val, sum, .desc = TRUE)) %>% 
-  filter(pattern == "increase") %>% 
+  filter(pattern == "decrease") %>% 
   ggplot(aes(x = week, y = val)) +
   geom_point(color = "darkgray") +
   geom_line() +
